@@ -1,51 +1,72 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-const vscode = require('vscode');
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+// The module 'vscode' contains the VS Code extensibility API
+const vscode = require('vscode');
+const common = require('./common');
+
+const startsWith = common.startsWith;
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	const disposable1 = vscode.commands.registerCommand('odoo-helpers.run-python-unit-test', runPythonUnitTest);
+	const disposable2 = vscode.commands.registerCommand('odoo-helpers.run-tig-blame', runTigBlame);
+	context.subscriptions.push(disposable1, disposable2);
+}
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "odoo-helpers" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('odoo-helpers.run-python-unit-test', function () {
-		let activeTerminal = vscode.window.activeTerminal;
-		if (!activeTerminal) {
-			activeTerminal = vscode.window.createTerminal();
-		}
-		let activeTextEditor = vscode.window.activeTextEditor
-		if (!activeTextEditor || activeTextEditor.document.fileName.substring(activeTextEditor.document.fileName.length - 3) != '.py') {
-			vscode.window.showInformationMessage('Please set the cursor in a python file.');
-			return
-		}
-		let selectionPosition = activeTextEditor.selection.start;
-		let line = selectionPosition.line;
-		while (line >= 0) {
-			const lineText = activeTextEditor.document.lineAt(line).text;
-			if (lineText.substring(0, 13) == '    def test_'){
+function runPythonUnitTest() {
+	let activeTextEditor = common.getActivePythonTextEditor();
+	if (activeTextEditor['errorResult']) {
+		vscode.window.showWarningMessage(activeTextEditor['reason']);
+		return;
+	}
+	activeTextEditor = activeTextEditor['result'];
+	const selectionPosition = activeTextEditor.selection.start;
+	let line = selectionPosition.line;
+	while (line >= 0) {
+		const lineText = activeTextEditor.document.lineAt(line).text;
+		if (startsWith(lineText, '    def ')) {
+			if (startsWith(lineText.substring(8), 'test_')) {
 				const test_method_name = lineText.substring(8).split('(', 1)
+				const activeTerminal = common.getActiveOrCreateTerminal();
+				activeTerminal.sendText('o -t .' + test_method_name);
 				activeTerminal.show();
-				activeTerminal.sendText('o -t .' + test_method_name, false);
-				return
+				return;
+			} else {
+				vscode.window.showWarningMessage('The cursor is not in the body of a test !');
+				return;
 			}
-			line--;
 		}
-	});
+		line--;
+	}
+}
 
-	context.subscriptions.push(disposable);
+function runTigBlame() {
+	let activeTextEditor = common.getActiveTextEditor();
+	if (activeTextEditor['errorResult']) {
+		vscode.window.showWarningMessage(activeTextEditor['reason']);
+		return;
+	}
+	activeTextEditor = activeTextEditor['result'];
+
+	let workspaceFolder = common.getWorkspaceFolder();
+	if (workspaceFolder['errorResult']){
+		vscode.window.showWarningMessage(workspaceFolder['reason']);
+		return;
+	}
+	workspaceFolder = workspaceFolder['result']
+	if (!startsWith(activeTextEditor.document.uri.path, workspaceFolder.uri.path)) {
+		vscode.window.showWarningMessage('The focused editor is related to a new file, or to a file that doesn\'t belong to the project!');
+		return;
+	}
+	const fileRelativePath = activeTextEditor.document.uri.path.substring(workspaceFolder.uri.path.length + 1);
+	const activeTerminal = common.getActiveOrCreateTerminal();
+	activeTerminal.sendText('o tblame ' + fileRelativePath);
+	activeTerminal.show();
 }
 
 // This method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
 	activate,
