@@ -2,7 +2,7 @@
   "name": "odoo-helpers",
   "displayName": "odoo_helpers",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.125.0"
   },
@@ -14,10 +14,13 @@
   "contributes": {
     "commands": [{
       "command": "odoo-helpers.run-python-unit-test",
-      "title": "Run Python Unit Test"
+      "title": "Py Unit Test"
     },{
       "command": "odoo-helpers.run-tig-blame",
-      "title": "Run Tig Blame"
+      "title": "Tig Blame"
+    },{
+      "command": "odoo-helpers.python-move-var-to-setup",
+      "title": "Py Move To Setup"
     }]
   },
   "repository": {
