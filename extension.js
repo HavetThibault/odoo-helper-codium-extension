@@ -14,7 +14,7 @@ function activate(context) {
 	const disposable2 = vscode.commands.registerCommand('odoo-helpers.run-tig-blame', runTigBlame);
 	const disposable3 = vscode.commands.registerCommand('odoo-helpers.python-move-var-to-setup', runMoveToSetup);
 	const disposable4 = vscode.commands.registerCommand('odoo-helpers.python-replace-date', runReplaceDateUnderCursor);
-	const disposable5 = vscode.commands.registerCommand('odoo-helpers.python-select-expand-copy', runSelectExpandCopy);
+	const disposable5 = vscode.commands.registerCommand('odoo-helpers.python-select-expand', runSelectExpand);
 	context.subscriptions.push(disposable1, disposable2, disposable3, disposable4, disposable5);
 }
 
@@ -184,11 +184,7 @@ function runReplaceDateUnderCursor() {
 
 }
 
-const string_del = ['\'', '"'];
-const openingCharsSet = ['{', '[', '('];
-const closingCharsSet = ['}', ']', ')'];
-
-function runSelectExpandCopy() {
+function runSelectExpand() {
 	const nActiveTextEditor = common.getActivePythonTextEditor();
 	if (nActiveTextEditor['errorResult']) {
 		vscode.window.showWarningMessage(nActiveTextEditor['reason']);
@@ -197,15 +193,19 @@ function runSelectExpandCopy() {
 
 	const activeTextEditor = nActiveTextEditor.result;
 	const cursorPosition = activeTextEditor.selection.active;
-	const lineText = activeTextEditor.document.lineAt(cursorPosition.line).text;
-	let start_left_pos = cursorPosition.character;
-	if (start_left_pos > 0) {
-		start_left_pos--;
+	if (cursorPosition.line != activeTextEditor.selection.end.line) {
+		vscode.window.showWarningMessage('The selection is expanding on multiple line!');
+		return;
 	}
-	for (let i = start_left_pos; i >= 0; i--) {
-		const char = lineText.at(i);
-		if (string_del.includes(char) || openingCharsSet.includes(char))
+	const elemStartEnd = pythonParser.getElemStartEnd(activeTextEditor.document.lineAt(cursorPosition.line).text, activeTextEditor.selection);
+	if (elemStartEnd === undefined) {
+		vscode.window.showWarningMessage('The cursor isn\'t under any accepted element!');
+		return;
 	}
+	const selectStart = activeTextEditor.selection.active;
+	const elemStart =  new vscode.Position(selectStart.line, elemStartEnd.start + 1);
+	const elemEnd =  new vscode.Position(selectStart.line, elemStartEnd.end);
+	activeTextEditor.selection = new vscode.Selection(elemStart, elemEnd);
 }
 
 // This method is called when your extension is deactivated
