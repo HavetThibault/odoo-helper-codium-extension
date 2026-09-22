@@ -27,6 +27,12 @@
     },{
       "command": "odoo-helpers.python-select-expand",
       "title": "Py Select Expand"
+    },{
+      "command": "odoo-helpers.new-task",
+      "title": "New Task"
+    },{
+      "command": "odoo-helpers.switch-task",
+      "title": "Switch Task"
     }]
   },
   "repository": {

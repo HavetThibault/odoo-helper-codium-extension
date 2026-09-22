@@ -1,11 +1,17 @@
 
 // The module 'vscode' contains the VS Code extensibility API
 const vscode = require('vscode');
+const fs = require('fs');
+const path = require('path');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
 const common = require('./common');
 const pythonParser = require('./python_parser');
+const execFileAsync = promisify(execFile);
 
 const startsWith = common.startsWith;
-
+let vsContext;
 /**
  * @param {vscode.ExtensionContext} context
  */
@@ -15,7 +21,11 @@ function activate(context) {
 	const disposable3 = vscode.commands.registerCommand('odoo-helpers.python-move-var-to-setup', runMoveToSetup);
 	const disposable4 = vscode.commands.registerCommand('odoo-helpers.python-replace-date', runReplaceDateUnderCursor);
 	const disposable5 = vscode.commands.registerCommand('odoo-helpers.python-select-expand', runSelectExpand);
-	context.subscriptions.push(disposable1, disposable2, disposable3, disposable4, disposable5);
+	const disposable6 = vscode.commands.registerCommand('odoo-helpers.new-task', newTask);
+	const disposable7 = vscode.commands.registerCommand('odoo-helpers.switch-task', switchTask);
+	context.subscriptions.push(disposable1, disposable2, disposable3, disposable4, disposable5, disposable6, disposable7);
+	vsContext = context;
+	// vsContext.globalState.update('tasks', {});
 }
 
 function runPythonUnitTest() {
@@ -31,7 +41,7 @@ function runPythonUnitTest() {
 		const lineText = activeTextEditor.document.lineAt(line).text;
 		if (startsWith(lineText.trimStart(), 'def ')) {
 			if (startsWith(lineText.substring(8), 'test_')) {
-				const test_method_name = lineText.substring(8).split('(', 1)
+				const test_method_name = lineText.substring(8).split('(', 1);
 				const activeTerminal = common.getActiveOrCreateTerminal();
 				activeTerminal.sendText('o -t .' + test_method_name);
 				// TODO: add settings to decide whether to show the terminal
@@ -207,6 +217,141 @@ function runSelectExpand() {
 	const elemEnd =  new vscode.Position(selectStart.line, elemStartEnd.end);
 	activeTextEditor.selection = new vscode.Selection(elemStart, elemEnd);
 }
+
+async function newTask() {
+	const workspaceFolder = common.getWorkspaceFolder();
+	if (workspaceFolder['errorResult']) {
+		vscode.window.showWarningMessage(workspaceFolder['reason']);
+		return;
+	}
+	const workspaceF = workspaceFolder['result']
+	let branch;
+	try {
+		const { stdout } = await execFileAsync('get_ws_branch', [], {
+			cwd: workspaceF.uri.fsPath,
+		});
+		branch = stdout.trim();
+	} catch (error) {
+		vscode.window.showWarningMessage(`Unable to read git branch: ${error.message}`);
+		return
+	}
+	const tasks = vsContext.globalState.get('tasks', {});
+	if (tasks[branch] !== undefined) {
+		vscode.window.showWarningMessage(`A task linked to the branch '${branch}' already exists!`);
+		return;
+	}
+	const taskName = await vscode.window.showInputBox({title: 'Create a New Task', value: branch});
+	if (taskName === undefined){
+		return;
+	}
+	if (tasks[taskName] !== undefined) {
+		vscode.window.showWarningMessage('A task with that name already exists!');
+		return;
+	}
+	tasks[taskName] = {branch: branch, directory: workspaceF.uri.fsPath};
+	if (tasks.tasks === undefined) {
+		tasks.tasks = [taskName];
+	} else {
+		tasks.tasks.push(taskName)
+	}
+	vsContext.globalState.update('tasks', tasks);
+}
+
+async function switchTask() {
+	const branches_choices = [];
+	const tasks = vsContext.globalState.get('tasks', {});
+	if (tasks.tasks === undefined) {
+		vscode.window.showWarningMessage('No tasks to be found!');
+		return;
+	}
+	for (let taskName of tasks.tasks) {
+		branches_choices.push({
+			label: taskName,
+			detail: tasks[taskName].branch,
+		})
+	}
+	const taskChoice = await vscode.window.showQuickPick(branches_choices, {
+		title: 'Task switching',
+		placeHolder: 'Switch to task...',
+		matchOnDetail: true,
+	});
+	if (taskChoice === undefined) {
+		return
+	}
+	const selectedTask = tasks[taskChoice.label];
+	const workspaceFolder = common.getWorkspaceFolder();
+	if (workspaceFolder['errorResult']) {
+		vscode.window.showWarningMessage(workspaceFolder['reason']);
+		return;
+	}
+	const workspaceF = workspaceFolder['result']
+	if (workspaceF.uri.fsPath != selectedTask.directory) {
+		await vscode.commands.executeCommand(
+			'vscode.openFolder',
+			vscode.Uri.file(selectedTask.directory),
+			{ forceNewWindow: false }, // true => new window, current one stays put
+		);
+	}
+	try {
+		const activeTerminal = common.getActiveOrCreateTerminal();
+		activeTerminal.sendText('ggswa', true);
+	} catch (error) {
+		vscode.window.showWarningMessage(`Unable to switch branch: ${error.message}`);
+		return
+	}
+}
+
+
+
+class FoldersProvider {
+    constructor(roots) {
+        this.roots = roots;                       // array of absolute folder paths
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+
+    getTreeItem(element) {
+        const item = new vscode.TreeItem(
+            element.uri,
+            element.isDir
+                ? vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.None,
+        );
+        if (element.label) {
+            item.label = element.label;
+        }
+        if (!element.isDir) {
+            item.command = {
+                command: 'vscode.open',
+                title: 'Open',
+                arguments: [element.uri],
+            };
+        }
+        item.contextValue = element.isDir ? 'folder' : 'file';
+        return item;
+    }
+
+    async getChildren(element) {
+        if (!element) {
+            return this.roots
+                .filter(p => fs.existsSync(p))
+                .map(p => ({ uri: vscode.Uri.file(p), isDir: true, label: p }));
+        }
+        const entries = await fs.promises.readdir(element.uri.fsPath, { withFileTypes: true });
+        return entries
+            .map(e => ({
+                uri: vscode.Uri.file(path.join(element.uri.fsPath, e.name)),
+                isDir: e.isDirectory(),
+            }))
+            .sort((a, b) => (b.isDir - a.isDir) || a.uri.fsPath.localeCompare(b.uri.fsPath));
+    }
+}
+
+module.exports = { FoldersProvider };
 
 // This method is called when your extension is deactivated
 function deactivate() { }
