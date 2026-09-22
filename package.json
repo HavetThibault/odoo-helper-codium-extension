@@ -2,32 +2,88 @@
   "name": "odoo-helpers",
   "displayName": "odoo_helpers",
   "description": "",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.125.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:./odoo/",
+    "workspaceContains:./enterprise/",
+    "onStartupFinished"
+  ],
   "main": "./extension.js",
   "contributes": {
     "commands": [{
       "command": "odoo-helpers.run-python-unit-test",
       "title": "Py Unit Test"
-    },{
+    }, {
       "command": "odoo-helpers.run-tig-blame",
       "title": "Tig Blame"
-    },{
+    }, {
       "command": "odoo-helpers.python-move-var-to-setup",
       "title": "Py Move To Setup"
-    },{
+    }, {
       "command": "odoo-helpers.python-replace-date",
       "title": "Py Replace Date"
-    },{
+    }, {
       "command": "odoo-helpers.python-select-expand",
       "title": "Py Select Expand"
-    }]
+    }, {
+      "command": "odoo-helpers.new-task",
+      "title": "New Task"
+    }, {
+      "command": "odoo-helpers.switch-task",
+      "title": "Switch Task"
+    }, {
+      "command": "odoo-helpers.folders.rename",
+      "title": "Rename Element"
+    }, {
+      "command": "odoo-helpers.folders.delete",
+      "title": "Delete Element"
+    }, {
+      "command": "odoo-helpers.folders.newFile",
+      "title": "New File",
+      "icon": "$(new-file)"
+    }, {
+      "command": "odoo-helpers.folders.newFolder",
+      "title": "New Folder",
+      "icon": "$(new-folder)"
+    }],
+    "viewsContainers": {
+      "activitybar": [{
+        "id": "odoo-helpers",
+        "title": "Odoo Helpers",
+        "icon": "$(notebook)"
+      }]
+    },
+    "keybindings": [
+      { "command": "odoo-helpers.folders.rename", "key": "f2",
+        "when": "focusedView == odoo-helpers.folders" },
+      { "command": "odoo-helpers.folders.delete", "key": "delete",
+        "when": "focusedView == odoo-helpers.folders" }
+    ],
+    "menus": {
+      "view/item/context": [
+        { "command": "odoo-helpers.folders.rename", "when": "view == odoo-helpers.folders", "group": "7_modification" },
+        { "command": "odoo-helpers.folders.delete", "when": "view == odoo-helpers.folders", "group": "7_modification" },
+        { "command": "odoo-helpers.folders.newFile",   "when": "view == odoo-helpers.folders && viewItem == folder", "group": "1_creation@1" },
+        { "command": "odoo-helpers.folders.newFolder", "when": "view == odoo-helpers.folders && viewItem == folder", "group": "1_creation@2" }
+      ],
+      "view/title": [
+        { "command": "odoo-helpers.folders.newFile",   "when": "view == odoo-helpers.folders", "group": "navigation@1" },
+        { "command": "odoo-helpers.folders.newFolder", "when": "view == odoo-helpers.folders", "group": "navigation@2" }
+      ]
+    },
+    "views": {
+      "odoo-helpers": [{
+        "id": "odoo-helpers.folders",
+        "name": "Folders",
+        "icon": "media/odoo.svg"
+      }]
+    }
   },
   "repository": {
     "url": "https://github.com/HavetThibault/odoo-helper-codium-extension"

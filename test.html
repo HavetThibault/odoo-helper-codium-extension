@@ -1,0 +1,17 @@
+<body></body>
+<script>
+    // let textLine = '  accrual_plan = cls.create(';
+    // let result = textLine.search(/( )*[a-z,A-Z,1-9,_]*=( )*[a-z,A-Z,1-9,_]/)
+    // console.log(result);
+    // console.log(textLine.at(result));
+    // textLine = '  accrual_plan := cls.create(';
+    // result = textLine.search(/( )*[a-z,A-Z,1-9,_]*=( )*[a-z,A-Z,1-9,_]/)
+    // console.log(result);
+    // console.log(textLine.at(result));
+    const regex = /\s*[a-zA-Z0-9_]+\s*=\s*[a-zA-Z0-9_]/;
+    const line1 = "  accrual_plan = cls.create(";
+    const line2 = "  accrual_plan := cls.create(";
+
+    console.log(regex.test(line1)); // true
+    console.log(regex.test(line2)); // false
+</script>

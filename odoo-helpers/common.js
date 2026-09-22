@@ -21,10 +21,6 @@ function getActivePythonTextEditor() {
     return {'errorResult': false, 'result': activeTextEditor['result']};
 }
 
-function getActiveOrCreateTerminal() {
-    return vscode.window.activeTerminal ?? vscode.window.createTerminal();
-}
-
 function getWorkspaceFolder() {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
@@ -41,4 +37,4 @@ function startsWith(str, start_str) {
 }
 
 
-module.exports = { getActiveTextEditor, getActiveOrCreateTerminal, getActivePythonTextEditor, getWorkspaceFolder, startsWith };
+module.exports = { getActiveTextEditor, getActivePythonTextEditor, getWorkspaceFolder, startsWith };
