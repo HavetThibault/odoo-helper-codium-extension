@@ -21,13 +21,12 @@ function getActivePythonTextEditor() {
     return {'errorResult': false, 'result': activeTextEditor['result']};
 }
 
-function getActiveOrCreateTerminal() {
-    return vscode.window.activeTerminal ?? vscode.window.createTerminal();
-}
-
-function getWorkspaceFolder() {
+function getWorkspaceFolder(acceptZeroFolder) {
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
+    if (workspaceFolders === undefined || workspaceFolders.length === 0) {
+        if (acceptZeroFolder) {
+            return {'errorResult': false, 'result': undefined};
+        }
         return {'errorResult': true, 'reason': 'No opened folder!'};
     }
     if (workspaceFolders.length > 1) {
@@ -41,4 +40,4 @@ function startsWith(str, start_str) {
 }
 
 
-module.exports = { getActiveTextEditor, getActiveOrCreateTerminal, getActivePythonTextEditor, getWorkspaceFolder, startsWith };
+module.exports = { getActiveTextEditor, getActivePythonTextEditor, getWorkspaceFolder, startsWith };
