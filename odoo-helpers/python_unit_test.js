@@ -14,12 +14,13 @@ function runPythonUnitTest(terminalsManager) {
 		let line = selectionPosition.line;
 		while (line >= 0) {
 			const lineText = activeTextEditor.document.lineAt(line).text;
-			if (startsWith(lineText.trimStart(), 'def ')) {
-				if (startsWith(lineText.substring(8), 'test_')) {
-					const test_method_name = lineText.substring(8).split('(', 1);
+			if (startsWith(lineText, '    def ')) {
+				const testMethodNameAndArgs = lineText.substring(8); 
+				if (startsWith(testMethodNameAndArgs, 'test_')) {
+					const testMethodName = testMethodNameAndArgs.split('(', 1);
 					const availableTerminal = await terminalsManager.getAvailableTerminal();
 					availableTerminal.show()
-					availableTerminal.sendText('o -t .' + test_method_name, true);
+					availableTerminal.sendText('o -t .' + testMethodName, true);
 					// TODO: add settings to decide whether to show the terminal
 					return;
 				} else {

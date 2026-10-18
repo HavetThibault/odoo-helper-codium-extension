@@ -1,10 +1,10 @@
 class TaskData {
-    constructor(name, state, branch, directory, taskLinks=undefined) {
+    constructor(name, state, branch, directory, prs=undefined) {
         this.name = name;
         this.state = state;
         this.branch = branch;
         this.directory = directory;
-        this.taskLinks = !taskLinks ? [] : taskLinks;
+        this.prs = !prs ? [] : prs;
     }
 }
 

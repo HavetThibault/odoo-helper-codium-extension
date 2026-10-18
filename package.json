@@ -21,6 +21,10 @@
         "title": "Py Unit Test"
       },
       {
+        "command": "odoo-helpers.run-python-class-test",
+        "title": "Py Class Test"
+      },
+      {
         "command": "odoo-helpers.run-tig-blame",
         "title": "Tig Blame"
       },

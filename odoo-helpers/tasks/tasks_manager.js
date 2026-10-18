@@ -1,6 +1,6 @@
 
 const { Task, TaskData } = require('./task')
-const { TaskLinkData } = require('./task_link');
+const { PullRequestData } = require('./pull_request');
 const path = require('path');
 const fs = require('fs');
 const vscode = require('vscode');
@@ -18,7 +18,7 @@ function loadTasksManager(vsContext, terminalsManager, secretStorage) {
     const tasks = [];
     for (let taskName in loadedTasks) {
         const oldTask = loadedTasks[taskName];
-        const taskData = new TaskData(oldTask.name, oldTask.state, oldTask.branch, oldTask.directory, oldTask.taskLinks);
+        const taskData = new TaskData(oldTask.name, oldTask.state, oldTask.branch, oldTask.directory, oldTask.prs);
         tasks.push(new Task(taskData));
     }
     return new TasksManager(tasks, vsContext, terminalsManager, secretStorage);
@@ -35,9 +35,10 @@ class TasksManager {
         this.getCurrentTask = this.getCurrentTask.bind(this);
         this.newTask = this.newTask.bind(this);
         this.switchTask = this.switchTask.bind(this);
+        this.createBranchChoices = this.createBranchChoices.bind(this);
         this.switchBranchIfNecessary = this.switchBranchIfNecessary.bind(this);
-        this.updateTaskLinks = this.updateTaskLinks.bind(this);
-        this.onActiveTaskLinkUpdatedSubscribers = [];
+        this.updatePullRequests = this.updatePullRequests.bind(this);
+        this.onActivePullRequestUpdatedSubscribers = [];
         this.onTaskCreatedSubscribers = [];
     }
 
@@ -122,12 +123,14 @@ class TasksManager {
     }
 
     onTaskCreated() {
-        this.onTaskCreatedSubscribers.forEach(subscriber => subscriber())
+        this.onTaskCreatedSubscribers.forEach(subscriber => subscriber());
     }
 
-    createBranchChoices() {
+    async createBranchChoices() {
+        const currentTaskName = (await this.getCurrentTask())?.data.name;
         const branchesChoices = this.tasks.map(task => {
-            return {label: task.data.name, detail: task.data.branch, task: task};
+            const label = currentTaskName && currentTaskName == task.data.name ? `>>> ${task.data.name}` : task.data.name;
+            return {label: label, detail: task.data.branch, task: task};
         });
         if (branchesChoices.length === 0) {
             vscode.window.showWarningMessage('No tasks to be found!');
@@ -137,7 +140,7 @@ class TasksManager {
     }
 
     async switchTask() {
-        const branchesChoices = this.createBranchChoices();
+        const branchesChoices = await this.createBranchChoices();
         if (!branchesChoices) {
             return;
         }
@@ -205,7 +208,7 @@ class TasksManager {
         delete this.vsContext.globalState.switchToBranch;
     }
 
-    async updateTaskLinks() {
+    async updatePullRequests() {
         const currentTask = await this.getCurrentTask();
         if (currentTask === undefined) {
             return;
@@ -214,18 +217,20 @@ class TasksManager {
         const repos = [
             ['odoo', 'odoo-dev'],
             ['enterprise', 'odoo-dev'],
-            ['upgrade', '']];
+            ['upgrade', 'odoo']];
         const token = await this.secretStorage.getGithubToken();
         if (!token) {
             vscode.window.showWarningMessage('Please set your github token!');
             return;
         }
+        let prs = [];
         for (let i = 0; i < repos.length; i++) {
             const repo = repos[i][0];
             const pullOriginOwner = repos[i][1];
             // const url = `https://api.github.com/repos/odoo/${repos[i]}/pulls?head=thha-odoo:${currentTask.data.branch}`;
             const urlPrefix = `https://api.github.com/repos/${owner}/${repo}/pulls`;
-            const url = urlPrefix + '?head=' + (pullOriginOwner != '' ? `${pullOriginOwner}:${currentTask.data.branch}` : currentTask.data.branch)
+            const url = urlPrefix + '?head=' + (pullOriginOwner != '' ? `${pullOriginOwner}:${currentTask.data.branch}` : currentTask.data.branch);
+            // const url = urlPrefix + '?head=master-dataaaaaaaaaaaaaaaaaaaa'
             // const url = `https://api.github.com/repos/thha-odoo/18.0-tutorial-thha/pulls`;
             const res = await fetch(
                 url,
@@ -234,38 +239,25 @@ class TasksManager {
                     'Accept': 'application/vnd.github+json',
                     'X-GitHub-Api-Version': '2026-03-10'
                 }});
-            const prs = await res.json();
-            const urls = prs.map(pr => pr.html_url);
-            const a = '';
-            // if (urls.length == 1) {
-            //     currentTask.data.taskLinks = new TaskLinkData(taskLinkElem[0], taskLinkElem[1]);
-            // }
+            const repoPrs = await res.json();
+            if (repoPrs instanceof Array) {
+                prs = prs.concat(repoPrs.map(pr => {
+                    const createdAt = pr.created_at;
+                    const title = pr.title;
+                    const body = pr.body;
+                    const state = pr.state;
+                    const id = pr.number;
+                    return new PullRequestData(repo, id, title, body, state, createdAt)
+                }));
+            }
         }
-        // this.saveTasks();
-        // this.onActiveTaskLinkUpdated();
-
-        // try {
-        //     const runbotUrl = currentTask.getRunbotUrl();
-        //     const { stdout } = await execFileAsync('./odoo/.venv/bin/python3', [
-        //         '/home/odoo/Perso/odoo_helpers_extension/scripts/extract_task_links.py', runbotUrl], {
-        //         cwd: workspaceFolder.uri.fsPath,
-        //     });
-        //     const taskLinksRaw = stdout.split('\n').filter(line => line.includes(','));
-        //     currentTask.data.taskLinks = taskLinksRaw.map((taskLinkRaw) => {
-        //         const taskLinkElem = taskLinkRaw.split(',');
-        //         return new TaskLinkData(taskLinkElem[0], taskLinkElem[1]);
-        //     });
-        //     this.saveTasks();
-        //     this.onActiveTaskLinkUpdated();
-        // }
-        // catch (error) {
-        //     vscode.window.showWarningMessage(`Unable to read runbot page: ${error.message}`);
-        //     return;
-        // }
+        currentTask.data.prs = prs;
+        this.saveTasks();
+        this.onActivePullRequestUpdated();
     }
 
-    onActiveTaskLinkUpdated() {
-        this.onActiveTaskLinkUpdatedSubscribers.forEach(subscriber => subscriber())
+    onActivePullRequestUpdated() {
+        this.onActivePullRequestUpdatedSubscribers.forEach(subscriber => subscriber())
     }
 }
 

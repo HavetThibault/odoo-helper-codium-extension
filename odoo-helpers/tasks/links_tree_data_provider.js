@@ -5,7 +5,7 @@ const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 
 const { getWorkspaceFolder } = require('../common');
-const { TaskLink, TaskLinkData } = require('./task_link');
+const { PullRequest, PullRequestData } = require('./pull_request');
 
 function getRunbotUrl(task) {
     return `https://runbot.odoo.com/runbot/bundle/${task.data.branch}`;
@@ -60,7 +60,7 @@ function extractTasksLinks(html) {
         // Removes 'odoo/'
         const repos = reposUri.substring(5);
         const prId = githubLink.split('/').at(-1);
-        return new TaskLink(repos, prId);
+        return new PullRequest(repos, prId);
     }).filter(item => item !== undefined);
 }
 
@@ -95,11 +95,11 @@ class LinksTreeDataProvider {
 
         const runbotUrl = currentTask.getRunbotUrl();
         let elements;
-        if (!currentTask.data.taskLinks) {
+        if (!currentTask.data.prs) {
             elements = [];
         } else {
-            elements = currentTask.data.taskLinks.map(taskLinkData => {
-                const taskLink = new TaskLink(taskLinkData);
+            elements = currentTask.data.prs.map(PullRequestData => {
+                const taskLink = new PullRequest(PullRequestData);
                 return {
                     name: taskLink.getName(),
                     url: taskLink.getGithubUrl()

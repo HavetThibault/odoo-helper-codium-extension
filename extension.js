@@ -3,6 +3,7 @@ const vscode = require('vscode');
 
 const { SecretStorageForSecretSettings } = require('./odoo-helpers/github_token');
 const { runPythonUnitTest } = require('./odoo-helpers/python_unit_test');
+const { runPythonClassTest } = require('./odoo-helpers/python_class_test');
 const { runTigBlame } = require('./odoo-helpers/tig_blame');
 const { runMoveToSetup } = require('./odoo-helpers/mv_var_to_setup');
 const { replaceDateUnderCursorCmd } = require('./odoo-helpers/replace_date_under_cursor');
@@ -25,6 +26,7 @@ function addCmd(context, name, callback) {
 function activate(context) {
 	const terminalsManager = new TerminalsManager();
 	addCmd(context, 'run-python-unit-test', runPythonUnitTest(terminalsManager));
+	addCmd(context, 'run-python-class-test', runPythonClassTest(terminalsManager));
 	addCmd(context, 'run-tig-blame', runTigBlame(terminalsManager));
 
 	addCmd(context, 'python-move-var-to-setup', runMoveToSetup);
@@ -56,10 +58,10 @@ function activate(context) {
 		treeDataProvider: linksDataProvider,
 	}));
 
-	addCmd(context, 'active-task-links.updateLinks', tasksManager.updateTaskLinks);
+	addCmd(context, 'active-task-links.updateLinks', tasksManager.updatePullRequests);
 	const linksRefresh = linksDataProvider.refresh.bind(linksDataProvider);
 	tasksManager.onTaskCreatedSubscribers.push(linksRefresh);
-	tasksManager.onActiveTaskLinkUpdatedSubscribers.push(linksRefresh);
+	tasksManager.onActivePullRequestUpdatedSubscribers.push(linksRefresh);
 
 	context.subscriptions.push(
         vscode.window.onDidStartTerminalShellExecution(terminalsManager.onTerminalStartCmd),
