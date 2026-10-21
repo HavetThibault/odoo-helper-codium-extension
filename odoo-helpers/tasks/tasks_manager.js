@@ -1,6 +1,6 @@
 
 const { Task, TaskData } = require('./task')
-const { PullRequestData } = require('./pull_request');
+const { PullRequest, PullRequestData } = require('./pull_request');
 const path = require('path');
 const fs = require('fs');
 const vscode = require('vscode');
@@ -38,8 +38,10 @@ class TasksManager {
         this.createBranchChoices = this.createBranchChoices.bind(this);
         this.switchBranchIfNecessary = this.switchBranchIfNecessary.bind(this);
         this.updatePullRequests = this.updatePullRequests.bind(this);
+        this.copyPRIds = this.copyPRIds.bind(this);
         this.onActivePullRequestUpdatedSubscribers = [];
         this.onTaskCreatedSubscribers = [];
+        this.onTaskSwitchedSubscribers = [];
     }
 
     getTasksNotesDirectories() {
@@ -64,7 +66,7 @@ class TasksManager {
             });
             wsBranch = stdout.trim();
         } catch (error) {
-            vscode.window.showWarningMessage(`Unable to read git branch: ${error.message}`);
+            vscode.window.showWarningMessage(`Got this error while trying to get the activ branch: ${error.message}`);
             return undefined;
         }
         const matchingTask = this.tasks.filter((task) => task.data.branch === wsBranch);
@@ -88,7 +90,7 @@ class TasksManager {
             });
             wsBranch = stdout.trim();
         } catch (error) {
-            vscode.window.showWarningMessage(`Unable to read git branch: ${error.message}`);
+            vscode.window.showWarningMessage(`Got this error while trying to get the activ branch: ${error.message}`);
             return
         }
         let matchingTask = this.tasks.filter((task) => task.data.branch === wsBranch);
@@ -173,10 +175,15 @@ class TasksManager {
             const availableTerminal = await this.terminalsManager.getAvailableTerminal();
             availableTerminal.show();
             availableTerminal.sendText(`ggswa ${selectedTask.data.branch}`, true);
+            this.onTaskSwitched();
         } catch (error) {
             vscode.window.showWarningMessage(`Unable to switch branch: ${error.message}`);
             return;
         }
+    }
+
+    onTaskSwitched() {
+        this.onTaskSwitchedSubscribers.forEach(subscriber => subscriber());
     }
 
     async switchBranchIfNecessary() {
@@ -227,11 +234,8 @@ class TasksManager {
         for (let i = 0; i < repos.length; i++) {
             const repo = repos[i][0];
             const pullOriginOwner = repos[i][1];
-            // const url = `https://api.github.com/repos/odoo/${repos[i]}/pulls?head=thha-odoo:${currentTask.data.branch}`;
             const urlPrefix = `https://api.github.com/repos/${owner}/${repo}/pulls`;
             const url = urlPrefix + '?head=' + (pullOriginOwner != '' ? `${pullOriginOwner}:${currentTask.data.branch}` : currentTask.data.branch);
-            // const url = urlPrefix + '?head=master-dataaaaaaaaaaaaaaaaaaaa'
-            // const url = `https://api.github.com/repos/thha-odoo/18.0-tutorial-thha/pulls`;
             const res = await fetch(
                 url,
                 { headers: {
@@ -258,6 +262,20 @@ class TasksManager {
 
     onActivePullRequestUpdated() {
         this.onActivePullRequestUpdatedSubscribers.forEach(subscriber => subscriber())
+    }
+
+    async copyPRIds() {
+        const currentTask = await this.getCurrentTask();
+        if (currentTask === undefined) {
+            return;
+        }
+        if (currentTask.data.prs instanceof Array && currentTask.data.prs.length > 0) {
+            const prLinks = currentTask.data.prs.map(pr => {
+                return `${new PullRequest(pr).getMarkdownLink()}`;
+            }).join('\n');
+            vscode.env.clipboard.writeText(prLinks);
+            vscode.window.showInformationMessage('Copied!');
+        }
     }
 }
 

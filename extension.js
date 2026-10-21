@@ -7,6 +7,7 @@ const { runPythonClassTest } = require('./odoo-helpers/python_class_test');
 const { runTigBlame } = require('./odoo-helpers/tig_blame');
 const { runMoveToSetup } = require('./odoo-helpers/mv_var_to_setup');
 const { replaceDateUnderCursorCmd } = require('./odoo-helpers/replace_date_under_cursor');
+const { applyPrMessage, subscribeApplyPrMessage } = require('./odoo-helpers/download_commit_msg');
 const { selectExpandCmd } = require('./odoo-helpers/select_expand');
 const { TaskTreeDataProvider } = require('./odoo-helpers/tasks/tree_data_provider');
 const { loadTasksManager } = require('./odoo-helpers/tasks/tasks_manager');
@@ -24,6 +25,7 @@ function addCmd(context, name, callback) {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	subscribeApplyPrMessage(context);
 	const terminalsManager = new TerminalsManager();
 	addCmd(context, 'run-python-unit-test', runPythonUnitTest(terminalsManager));
 	addCmd(context, 'run-python-class-test', runPythonClassTest(terminalsManager));
@@ -40,6 +42,7 @@ function activate(context) {
 	const tasksManager = loadTasksManager(context, terminalsManager, secretStorage);
 	addCmd(context, 'new-task', tasksManager.newTask);
 	addCmd(context, 'switch-task', tasksManager.switchTask);
+	addCmd(context, 'apply-pr-message', () => applyPrMessage(tasksManager))
 
     const provider = new TaskTreeDataProvider(tasksManager);
 	tasksManager.onTaskCreatedSubscribers.push(provider.refresh.bind(provider));
@@ -52,16 +55,18 @@ function activate(context) {
     addCmd(context, 'folders.newFile', (node) => taskTreeView.createElement(node, false));
     addCmd(context, 'folders.newFolder', (node) => taskTreeView.createElement(node, true));
     addCmd(context, 'open-link', (link) => vscode.env.openExternal(vscode.Uri.parse(link)));
-	
+
 	const linksDataProvider = new LinksTreeDataProvider(tasksManager);
 	context.subscriptions.push(vscode.window.createTreeView('odoo-helpers.active-task-links', {
 		treeDataProvider: linksDataProvider,
 	}));
 
-	addCmd(context, 'active-task-links.updateLinks', tasksManager.updatePullRequests);
+	addCmd(context, 'active-task-links.update-links', tasksManager.updatePullRequests);
+	addCmd(context, 'active-task-links.copy-pr-ids', tasksManager.copyPRIds);
 	const linksRefresh = linksDataProvider.refresh.bind(linksDataProvider);
 	tasksManager.onTaskCreatedSubscribers.push(linksRefresh);
 	tasksManager.onActivePullRequestUpdatedSubscribers.push(linksRefresh);
+	tasksManager.onTaskSwitchedSubscribers.push(linksRefresh);
 
 	context.subscriptions.push(
         vscode.window.onDidStartTerminalShellExecution(terminalsManager.onTerminalStartCmd),

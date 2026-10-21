@@ -18,6 +18,10 @@ class PullRequest {
         return `${this.data.repository.toUpperCase()}#${this.data.id}`;
     }
 
+    getMarkdownLink() {
+        return `[${this.data.repository}#${this.data.id}](odoo/${this.data.repository}#${this.data.id})`;
+    }
+
     getGithubUrl() {
         return `https://github.com/odoo/${this.data.repository}/pull/${this.data.id}`;
     }

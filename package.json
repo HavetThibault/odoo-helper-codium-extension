@@ -49,6 +49,10 @@
         "title": "Switch Task"
       },
       {
+        "command": "odoo-helpers.apply-pr-message",
+        "title": "Apply PR Message"
+      },
+      {
         "command": "odoo-helpers.folders.rename",
         "title": "Rename Element"
       },
@@ -67,9 +71,14 @@
         "icon": "$(new-folder)"
       },
       {
-        "command": "odoo-helpers.active-task-links.updateLinks",
+        "command": "odoo-helpers.active-task-links.update-links",
         "title": "Update Links",
         "icon": "$(extensions-refresh)"
+      },
+      {
+        "command": "odoo-helpers.active-task-links.copy-pr-ids",
+        "title": "Copy PR Ids",
+        "icon": "$(copy)"
       },
       {
         "command": "odoo-helpers.setGithubToken",
@@ -142,9 +151,14 @@
           "group": "navigation@2"
         },
         {
-          "command": "odoo-helpers.active-task-links.updateLinks",
+          "command": "odoo-helpers.active-task-links.copy-pr-ids",
           "when": "view == odoo-helpers.active-task-links",
           "group": "navigation@3"
+        },
+        {
+          "command": "odoo-helpers.active-task-links.update-links",
+          "when": "view == odoo-helpers.active-task-links",
+          "group": "navigation@4"
         }
       ]
     },
