@@ -39,5 +39,9 @@ function startsWith(str, start_str) {
     return str.substring(0, start_str.length) == start_str;
 }
 
+function addCmd(context, name, callback) {
+	context.subscriptions.push(
+		vscode.commands.registerCommand(`odoo-helpers.${name}`, callback));
+}
 
-module.exports = { getActiveTextEditor, getActivePythonTextEditor, getWorkspaceFolder, startsWith };
+module.exports = { getActiveTextEditor, getActivePythonTextEditor, getWorkspaceFolder, startsWith, addCmd };

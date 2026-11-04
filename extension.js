@@ -1,6 +1,8 @@
 
 const vscode = require('vscode');
 
+const { CopilotTokensConsumption } = require('./odoo-helpers/copilot_tokens_consumption');
+const { addCmd } = require('./odoo-helpers/common');
 const { SecretStorageForSecretSettings } = require('./odoo-helpers/github_token');
 const { runPythonUnitTest } = require('./odoo-helpers/python_unit_test');
 const { runPythonClassTest } = require('./odoo-helpers/python_class_test');
@@ -14,12 +16,6 @@ const { loadTasksManager } = require('./odoo-helpers/tasks/tasks_manager');
 const { FileTreeView } = require('./odoo-helpers/tasks/tree_view');
 const { LinksTreeDataProvider } = require('./odoo-helpers/tasks/links_tree_data_provider');
 const { TerminalsManager } = require('./odoo-helpers/terminal_manager')
-
-
-function addCmd(context, name, callback) {
-	context.subscriptions.push(
-		vscode.commands.registerCommand(`odoo-helpers.${name}`, callback));
-}
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -38,6 +34,9 @@ function activate(context) {
 	const secretStorage = new SecretStorageForSecretSettings(context);
 	addCmd(context, 'setGithubToken', secretStorage.setGithubToken);
 	addCmd(context, 'clearGithubToken', secretStorage.clearGithubToken);
+
+	const copilotTokensConsumption = new CopilotTokensConsumption(secretStorage, context);
+	copilotTokensConsumption.createStatusBarItem();
 
 	const tasksManager = loadTasksManager(context, terminalsManager, secretStorage);
 	addCmd(context, 'new-task', tasksManager.newTask);

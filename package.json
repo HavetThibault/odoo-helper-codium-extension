@@ -88,7 +88,10 @@
         "command": "odoo-helpers.clearGithubToken",
         "title": "Clear Github Token"
       },
-
+      {
+        "command": "odoo-helpers.fetch-github-credit-consumption",
+        "title": "Fetch Github Credit Consumption"
+      },
       {
         "command": "odoo-helpers.folders.refresh",
         "title": "Refresh",
