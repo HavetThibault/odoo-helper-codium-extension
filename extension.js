@@ -16,6 +16,7 @@ const { loadTasksManager } = require('./odoo-helpers/tasks/tasks_manager');
 const { FileTreeView } = require('./odoo-helpers/tasks/tree_view');
 const { LinksTreeDataProvider } = require('./odoo-helpers/tasks/links_tree_data_provider');
 const { TerminalsManager } = require('./odoo-helpers/terminal_manager')
+const { printLineToFile, sendLineToTerminal, clearLinesFile } = require('./odoo-helpers/line_actions');
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -30,6 +31,10 @@ function activate(context) {
 	addCmd(context, 'python-move-var-to-setup', runMoveToSetup);
 	addCmd(context, 'python-replace-date', replaceDateUnderCursorCmd);
 	addCmd(context, 'python-select-expand', selectExpandCmd);
+
+	addCmd(context, 'print-line-to-file', printLineToFile);
+	addCmd(context, 'send-line-to-terminal', sendLineToTerminal);
+	addCmd(context, 'clear-lines-file', clearLinesFile);
 
 	const secretStorage = new SecretStorageForSecretSettings(context);
 	addCmd(context, 'setGithubToken', secretStorage.setGithubToken);
@@ -72,7 +77,7 @@ function activate(context) {
         vscode.window.onDidEndTerminalShellExecution(terminalsManager.onTerminalEndCmd)
     );
 
-	tasksManager.switchBranchIfNecessary();
+	// tasksManager.switchBranchIfNecessary();
 }
 
 function deactivate() { }

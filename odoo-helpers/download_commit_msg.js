@@ -5,7 +5,7 @@ const path = require('path');
 const execFileAsync = promisify(execFile);
 
 const { PullRequest } = require('./tasks/pull_request');
-const { getWorkspaceFolder, startsWith } = require('./common');
+const { getWorkspaceFolder } = require('./common');
 
 const SCHEME = 'odoo-helpers-diff';
 const pathToTextMap = new Map();

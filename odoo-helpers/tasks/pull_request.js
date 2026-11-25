@@ -19,7 +19,7 @@ class PullRequest {
     }
 
     getMarkdownLink() {
-        return `[${this.data.repository}#${this.data.id}](odoo/${this.data.repository}#${this.data.id})`;
+        return `[${this.data.repository}#${this.data.id}](${this.getGithubUrl()})`;
     }
 
     getGithubUrl() {

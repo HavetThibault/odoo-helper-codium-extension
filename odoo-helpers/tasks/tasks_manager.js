@@ -142,6 +142,12 @@ class TasksManager {
     }
 
     async switchTask() {
+        if (await this.terminalsManager.anyTerminalBusy()) {
+            const selection = await vscode.window.showInformationMessage('Terminal is currently running...', 'Show Tasks');
+            if (selection !== 'Show Tasks') {
+                return;
+            }
+        }
         const branchesChoices = await this.createBranchChoices();
         if (!branchesChoices) {
             return;

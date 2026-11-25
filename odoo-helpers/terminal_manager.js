@@ -1,6 +1,13 @@
 const vscode = require('vscode');
 
 
+const ODOO_CLIENT_TERMINAL = 'close-odoo-client'
+
+function getUserTerminals() {
+    return vscode.window.terminals.filter(terminal => terminal.name !== ODOO_CLIENT_TERMINAL);
+}
+
+
 class TerminalsManager {
     constructor() {
         this.terminalStates = [];
@@ -11,7 +18,7 @@ class TerminalsManager {
     }
 
     async onTerminalStartCmd(event) {
-        if (event.terminal.name === 'close-odoo-client') {
+        if (event.terminal.name === ODOO_CLIENT_TERMINAL) {
             return
         }
         const ps = await event.terminal.processId;
@@ -19,7 +26,7 @@ class TerminalsManager {
     }
 
     async onTerminalEndCmd(event) {
-        if (event.terminal.name === 'close-odoo-client') {
+        if (event.terminal.name === ODOO_CLIENT_TERMINAL) {
             return
         }
         const ps = await event.terminal.processId;
@@ -45,7 +52,7 @@ class TerminalsManager {
                 return activeTerminal;
             }
         }
-        const terminals = vscode.window.terminals.filter(terminal => terminal.name !== 'close-odoo-client');
+        const terminals = getUserTerminals();
         for (let i = 0; i < terminals.length; i++) {
             if (terminals[i] === activeTerminal) {
                 continue;
@@ -63,6 +70,12 @@ class TerminalsManager {
             return terminalState[0].isBusy;
         }
         return false;
+    }
+
+    async anyTerminalBusy() {
+        const terminals = getUserTerminals();
+        const terminalPsIds = Promise.all(terminals.map((terminal) => terminal.processId))
+        return (await terminalPsIds).some((ps) => this.isTerminalBusy(ps));
     }
 }
 

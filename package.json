@@ -41,6 +41,18 @@
         "title": "Py Select Expand"
       },
       {
+        "command": "odoo-helpers.print-line-to-file",
+        "title": "Print Line To File"
+      },
+      {
+        "command": "odoo-helpers.send-line-to-terminal",
+        "title": "Send Line To Terminal"
+      },
+      {
+        "command": "odoo-helpers.clear-lines-file",
+        "title": "Clear Lines File"
+      },
+      {
         "command": "odoo-helpers.new-task",
         "title": "New Task"
       },
@@ -108,6 +120,20 @@
       ]
     },
     "keybindings": [
+      {
+        "command": "odoo-helpers.print-line-to-file",
+        "key": "ctrl+p",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "odoo-helpers.send-line-to-terminal",
+        "key": "ctrl+k+p",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "odoo-helpers.clear-lines-file",
+        "key": "ctrl+:"
+      },
       {
         "command": "odoo-helpers.folders.rename",
         "key": "f2",
@@ -196,6 +222,7 @@
     "@types/vscode": "^1.125.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0",
+    "esbuild": "^0.28.2",
     "eslint": "^10.5.0"
   },
   "dependencies": {
